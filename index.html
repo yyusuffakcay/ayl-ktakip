@@ -517,15 +517,28 @@
         }
 
         function checkSavedSession() {
-            // Eğer yönetici olarak kalıcı giriş yapıldıysa direkt admin panelini aç
-            const isAdminSaved = localStorage.getItem('ilkikra_admin');
-            if (isAdminSaved === 'true') {
+            const activeSession = localStorage.getItem('ilkikra_active_session');
+            
+            // 1. Eğer en son yönetici panelindeyse ve şifresi kayıtlıysa
+            if (activeSession === 'admin' && localStorage.getItem('ilkikra_admin') === 'true') {
                 isUnlocked = true;
                 currentRole = 'admin';
                 showPanelScreen();
                 return;
+            } 
+            // 2. Eğer en son bir hoca panelindeyse ve şifresi kayıtlıysa
+            else if (activeSession && systemData.hocalar && systemData.hocalar[activeSession]) {
+                const isTeacherSaved = localStorage.getItem('ilkikra_teacher_' + activeSession);
+                if (isTeacherSaved === 'true') {
+                    isUnlocked = true;
+                    currentRole = 'teacher';
+                    currentTeacherId = activeSession;
+                    showPanelScreen();
+                    return;
+                }
             }
-            // Hocalar için ana ekranı göster (İsim seçince otomatik girecekler)
+            
+            // 3. Hiçbir aktif oturum yoksa veya "Ana Ekran" butonuna basılmışsa ana kapıyı göster
             renderGateTeachers();
             showGateScreen();
         }
@@ -577,6 +590,7 @@
                 isUnlocked = true;
                 currentRole = 'teacher';
                 currentTeacherId = hId;
+                localStorage.setItem('ilkikra_active_session', hId); // Aktif oturumu mühürle
                 document.getElementById('gateErrorMsg').classList.add('hidden');
                 showPanelScreen();
                 return;
@@ -599,6 +613,7 @@
                 isUnlocked = true;
                 currentRole = 'teacher';
                 currentTeacherId = hId;
+                localStorage.setItem('ilkikra_active_session', hId); // Aktif oturumu mühürle
                 
                 const rememberBox = document.getElementById('rememberMeCheck');
                 if (rememberBox && rememberBox.checked) {
@@ -649,6 +664,7 @@
                 isUnlocked = true;
                 currentRole = 'admin';
                 localStorage.setItem('ilkikra_admin', 'true'); // Sadece yönetici girişini hatırla
+                localStorage.setItem('ilkikra_active_session', 'admin'); // Aktif oturumu mühürle
                 closeAdminLoginModal();
                 showPanelScreen();
             } else {
@@ -664,6 +680,7 @@
             } else if (currentRole === 'teacher' && currentTeacherId) {
                 localStorage.removeItem('ilkikra_teacher_' + currentTeacherId);
             }
+            localStorage.removeItem('ilkikra_active_session'); // Aktif oturumu sil
 
             isUnlocked = false;
             currentRole = null;
@@ -689,6 +706,7 @@
             
             // Arka planda karışıklık çıkmaması için rolü geçici olarak sıfırla
             currentRole = null; 
+            localStorage.removeItem('ilkikra_active_session'); // Sayfa yenilendiğinde direkt ana kapıda kalması için
         }
 
         function showPanelScreen() {
