@@ -112,7 +112,7 @@
                 <select id="teacherSelectDropdown" onfocus="isUserTyping = true;" onblur="isUserTyping = false;" onchange="secimYapildi(this.value)" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 text-sm text-slate-800 focus:outline-none focus:border-medrese-emerald focus:ring-2 focus:ring-medrese-emerald/20 transition mb-3">
                     <option value="" disabled selected>Hoca Seçiniz...</option>
                 </select>
-                <!-- Enter tuşu desteği eklendi -->
+                <!-- Enter tuşu desteği -->
                 <input type="password" id="gatePasswordInput" onfocus="isUserTyping = true;" onblur="isUserTyping = false;" onkeypress="handleGateKeypress(event)" placeholder="Şifreniz" class="w-full text-center tracking-widest bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm text-slate-800 focus:outline-none focus:border-medrese-emerald focus:ring-2 focus:ring-medrese-emerald/20 transition">
                 <span id="gateErrorMsg" class="text-rose-500 text-xs mt-2 block hidden font-medium"><i class="fa-solid fa-triangle-exclamation"></i> Hatalı Şifre veya Seçim!</span>
             </div>
@@ -131,7 +131,7 @@
             <h3 class="font-serif text-lg font-bold text-slate-800 mb-2">Yönetici Girişi</h3>
             <p class="text-xs text-slate-500 mb-5">Lütfen sistem yönetici güvenlik kodunu girin.</p>
             
-            <!-- Enter tuşu desteği eklendi -->
+            <!-- Enter tuşu desteği -->
             <input type="password" id="adminPasswordInput" onfocus="isUserTyping = true;" onblur="isUserTyping = false;" onkeypress="handleAdminKeypress(event)" placeholder="Güvenlik Kodu" class="w-full text-center bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 text-sm text-slate-800 focus:outline-none focus:border-medrese-accent mb-2">
             <span id="adminLoginErrorMsg" class="text-rose-500 text-xs block hidden font-medium mb-4">Yetkisiz Erişim! Kod Hatalı.</span>
             
@@ -198,7 +198,7 @@
         </div>
 
         <!-- 🔔 YENİ: Canlı İşlem Geçmişi (Log) -->
-        <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4 flex flex-col">
+        <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4 flex flex-col mt-6">
             <div class="flex justify-between items-center mb-3 border-b border-slate-200 pb-2">
                 <h3 class="font-bold text-sm text-slate-700 flex items-center gap-2">
                     <i class="fa-solid fa-bolt text-blue-500"></i> Canlı İşlem Geçmişi
@@ -349,6 +349,7 @@
         </div>
     </div>
 
+    <!-- VELİ WP MODAL (Tekli Gönderim) -->
     <div id="wpModal" class="modal fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4 hidden">
         <div class="modal-content bg-white max-w-md w-full p-5 rounded-3xl border border-slate-200 shadow-2xl max-h-[80vh] flex flex-col">
             <div class="flex justify-between items-center pb-3 border-b border-slate-100 mb-4 flex-shrink-0">
@@ -519,14 +520,12 @@
         function checkSavedSession() {
             const activeSession = localStorage.getItem('ilkikra_active_session');
             
-            // 1. Eğer en son yönetici panelindeyse ve şifresi kayıtlıysa
             if (activeSession === 'admin' && localStorage.getItem('ilkikra_admin') === 'true') {
                 isUnlocked = true;
                 currentRole = 'admin';
                 showPanelScreen();
                 return;
             } 
-            // 2. Eğer en son bir hoca panelindeyse ve şifresi kayıtlıysa
             else if (activeSession && systemData.hocalar && systemData.hocalar[activeSession]) {
                 const isTeacherSaved = localStorage.getItem('ilkikra_teacher_' + activeSession);
                 if (isTeacherSaved === 'true') {
@@ -538,7 +537,6 @@
                 }
             }
             
-            // 3. Hiçbir aktif oturum yoksa veya "Ana Ekran" butonuna basılmışsa ana kapıyı göster
             renderGateTeachers();
             showGateScreen();
         }
@@ -583,20 +581,21 @@
                 return;
             }
 
-            // HAFZA 1 (BİREYSEL HOCA HAFIZASI): Bu hocanın şifresi daha önce girildiyse Bypass yap
+            // Hızlı Giriş (Bypass) Kontrolü: Bu hoca hesabı için önceden şifre kaydedilmiş mi?
             const isTeacherSaved = localStorage.getItem('ilkikra_teacher_' + hId);
             
             if (isTeacherSaved === 'true') {
+                // Şifre kutusu boş olsa bile şak diye içeri al!
                 isUnlocked = true;
                 currentRole = 'teacher';
                 currentTeacherId = hId;
-                localStorage.setItem('ilkikra_active_session', hId); // Aktif oturumu mühürle
+                localStorage.setItem('ilkikra_active_session', hId);
                 document.getElementById('gateErrorMsg').classList.add('hidden');
                 showPanelScreen();
                 return;
             }
 
-            // Hafızada yoksa şifre sor
+            // Eğer hızlı giriş yoksa şifre sor
             const rawInput = document.getElementById('gatePasswordInput').value;
             const pwdInput = String(rawInput).trim();
             const hoca = systemData.hocalar[hId];
@@ -613,12 +612,11 @@
                 isUnlocked = true;
                 currentRole = 'teacher';
                 currentTeacherId = hId;
-                localStorage.setItem('ilkikra_active_session', hId); // Aktif oturumu mühürle
+                localStorage.setItem('ilkikra_active_session', hId); 
                 
                 const rememberBox = document.getElementById('rememberMeCheck');
                 if (rememberBox && rememberBox.checked) {
-                    // Sadece seçilen hocaya özel şifreyi hatırla
-                    localStorage.setItem('ilkikra_teacher_' + hId, 'true'); 
+                    localStorage.setItem('ilkikra_teacher_' + hId, 'true'); // Sadece o hocayı kalıcı yap
                 }
                 
                 document.getElementById('gateErrorMsg').classList.add('hidden');
@@ -631,15 +629,17 @@
         }
 
         function openAdminLoginModal() {
-            // HAFZA 2 (YÖNETİCİ HAFIZASI): Yönetici şifresi daha önce doğru girildiyse Bypass yap
+            // YÖNETİCİ HIZLI GİRİŞİ: Yönetici daha önce kaydedilmişse şifre kutusunu hiç açma, panele atla.
             const isAdminSaved = localStorage.getItem('ilkikra_admin');
             if (isAdminSaved === 'true') {
                 isUnlocked = true;
                 currentRole = 'admin';
+                localStorage.setItem('ilkikra_active_session', 'admin');
                 showPanelScreen();
                 return; 
             }
 
+            // Kayıt yoksa modalı aç ve sor
             document.getElementById('adminPasswordInput').value = '';
             document.getElementById('adminLoginErrorMsg').classList.add('hidden');
             document.getElementById('adminLoginModal').classList.remove('hidden');
@@ -663,8 +663,8 @@
             if (input === realPwd) {
                 isUnlocked = true;
                 currentRole = 'admin';
-                localStorage.setItem('ilkikra_admin', 'true'); // Sadece yönetici girişini hatırla
-                localStorage.setItem('ilkikra_active_session', 'admin'); // Aktif oturumu mühürle
+                localStorage.setItem('ilkikra_admin', 'true'); // Yöneticiyi kalıcı kaydet
+                localStorage.setItem('ilkikra_active_session', 'admin');
                 closeAdminLoginModal();
                 showPanelScreen();
             } else {
@@ -673,14 +673,13 @@
         }
 
         function logout() {
-            // Çıkış yap butonuna basıldığında SADECE o an açık olan hesabın hafızasını siler.
-            // (Yani yöneticiden çıkarsan, hocanın şifresi silinmez)
+            // Çıkış yap butonuna basıldığında aktif olan hesabın "Hızlı Giriş" yetkisini SİLER!
             if (currentRole === 'admin') {
                 localStorage.removeItem('ilkikra_admin');
             } else if (currentRole === 'teacher' && currentTeacherId) {
                 localStorage.removeItem('ilkikra_teacher_' + currentTeacherId);
             }
-            localStorage.removeItem('ilkikra_active_session'); // Aktif oturumu sil
+            localStorage.removeItem('ilkikra_active_session'); 
 
             isUnlocked = false;
             currentRole = null;
@@ -701,12 +700,11 @@
             document.getElementById('mainPanel').classList.add('hidden');
             document.getElementById('gateScreen').classList.remove('hidden');
             
-            // 1. SORUNUN ÇÖZÜMÜ: Ana ekrana dönüldüğünde hoca listesini anında yenile
+            // Ana Ekrana dönüşte listeyi mutlaka yenile (Hoca eklenmişse düşsün)
             renderGateTeachers(); 
             
-            // Arka planda karışıklık çıkmaması için rolü geçici olarak sıfırla
             currentRole = null; 
-            localStorage.removeItem('ilkikra_active_session'); // Sayfa yenilendiğinde direkt ana kapıda kalması için
+            localStorage.removeItem('ilkikra_active_session'); 
         }
 
         function showPanelScreen() {
@@ -736,7 +734,7 @@
             const now = new Date();
             const timeStr = `${String(now.getDate()).padStart(2,'0')}/${String(now.getMonth()+1).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
             systemData.aktiviteler.unshift({ msg: message, time: timeStr, id: Date.now() });
-            if (systemData.aktiviteler.length > 50) systemData.aktiviteler.pop(); // Sadece son 50 işlemi tut, hafızayı şişirme
+            if (systemData.aktiviteler.length > 50) systemData.aktiviteler.pop(); // Son 50 log tutulur
         }
 
         function renderAdminPanel() {
@@ -885,8 +883,6 @@
             if(!systemData.hocalar) systemData.hocalar = {};
             systemData.hocalar[hId] = { isim: name, sifre: '9876', ogrenciler: {} };
             
-            logActivity(`<i class="fa-solid fa-user-shield text-blue-500"></i> Yönetici, sisteme <b>${name}</b> isimli yeni bir hoca ekledi.`);
-            
             document.getElementById('newTeacherNameInput').value = '';
             verileriBulutaKaydet(); 
             renderAdminPanel();
@@ -895,7 +891,6 @@
         function confirmDeleteTeacher(hId) {
             const hoca = systemData.hocalar[hId];
             confirmActionCallback = () => {
-                logActivity(`<i class="fa-solid fa-user-shield text-rose-500"></i> Yönetici, <b>${hoca.isim}</b> isimli hocayı sistemden sildi.`);
                 delete systemData.hocalar[hId];
                 verileriBulutaKaydet(); 
                 renderAdminPanel(); 
@@ -929,7 +924,6 @@
         }
         function closeChangeAdminPwdModal() { document.getElementById('changeAdminPwdModal').classList.add('hidden'); }
         
-        // Yönetici şifre değiştirme (Güvenlik kodu "yusuf" şartı eklendi)
         function executeChangeAdminPwd() {
             const secCode = String(document.getElementById('adminSecurityCodeInput').value).trim().toLowerCase();
             const pwd = String(document.getElementById('newAdminPwdInput').value).trim();
@@ -1103,16 +1097,33 @@
             });
         }
 
-        function togglePayment(cellKey) {
+        // 🟢 İŞTE SENİN HATAYI VE ÇAKIŞMAYI ÇÖZEN YEPYENİ "TRAFİK POLİSLİ" GERİ ALMA FONKSİYONU
+        async function togglePayment(cellKey) {
             const st = getTeacherStudents()[selectedStudentId];
             if (!st) return;
             if (!st.odemeler) st.odemeler = {};
-            st.odemeler[cellKey] = !st.odemeler[cellKey];
             
-            // Gereksiz kalabalık yapmaması için ödeme durumu değişikliği bildirimi (log) kaldırıldı
+            // Eğer zaten ödenmişse, kaydı tamamen sil (Geri al)
+            if (st.odemeler[cellKey] === true) {
+                delete st.odemeler[cellKey];
+            } else {
+                // Ödenmemişse, ödendi olarak işaretle
+                st.odemeler[cellKey] = true;
+            }
             
-            verileriBulutaKaydet(); 
-            refreshUI();
+            // Sistem buluta veri yollarken otomatik yenilemenin araya girip eskiyi çekmesini engelliyoruz (Trafik durdurulur)
+            isUserTyping = true; 
+            
+            // Ekranı anında güncelle (kullanıcı beklemeyecek)
+            refreshUI(); 
+            
+            // Verinin buluta kesin olarak yazıldığından emin ol
+            await verileriBulutaKaydet(); 
+            
+            // Buluta kayıt bittikten 1 saniye sonra trafiği (otomatik yenilemeyi) tekrar aç
+            setTimeout(() => {
+                isUserTyping = false;
+            }, 1000);
         }
 
         function openAddStudentModal() {
@@ -1151,13 +1162,11 @@
                 ogrs[editingStudentId].ad = name;
                 ogrs[editingStudentId].ucret = fee;
                 ogrs[editingStudentId].veli_tel = phone;
-                // Öğrenci bilgisi güncellendiğinde bildirim atması kaldırıldı
             } else {
                 const newId = 'st_' + Date.now();
                 ogrs[newId] = { ad: name, ucret: fee, veli_tel: phone, odemeler: {} };
                 selectedStudentId = newId;
                 
-                // SADECE YENİ KAYITLARDA BİLDİRİM (LOG) ATACAK:
                 logActivity(`<b>${hocaAdi}</b>, sınıfına <b>${name}</b> isimli yeni talebeyi (<span class="text-emerald-600 font-bold">${formatCurrency(fee)}</span>) kaydetti.`);
             }
             verileriBulutaKaydet(); 
@@ -1169,12 +1178,8 @@
             const st = getTeacherStudents()[stId];
             if (!st) return;
             confirmActionCallback = () => {
-                const stAdi = st.ad;
                 delete systemData.hocalar[currentTeacherId].ogrenciler[stId];
                 if (selectedStudentId === stId) selectedStudentId = null;
-                
-                // Öğrenci silindiğinde bildirim atması kaldırıldı
-                
                 verileriBulutaKaydet(); 
                 refreshUI(); 
                 closeConfirmModal();
