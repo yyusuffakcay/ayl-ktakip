@@ -201,7 +201,7 @@
         <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4 flex flex-col mt-6">
             <div class="flex justify-between items-center mb-3 border-b border-slate-200 pb-2">
                 <h3 class="font-bold text-sm text-slate-700 flex items-center gap-2">
-                    <i class="fa-solid fa-bolt text-blue-500"></i> Canlı İşlem Geçmişi
+                    <i class="fa-solid fa-bolt text-blue-500"></i> Yeni Kayıt Geçmişi
                 </h3>
                 <span class="text-[9px] bg-blue-100 text-blue-700 font-bold px-2 py-1 rounded-lg shadow-sm">Son 50 İşlem</span>
             </div>
@@ -235,11 +235,8 @@
                         Talebelerim <span id="studentCountBadge" class="bg-emerald-100 text-emerald-700 text-xs px-2 py-0.5 rounded-full font-bold">0</span>
                     </h3>
                     <div class="flex gap-1">
-                        <button onclick="openWpModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] py-1.5 px-2 rounded-lg flex items-center gap-1 transition shadow-sm">
-                            <i class="fa-brands fa-whatsapp"></i> Veli WP
-                        </button>
-                        <button onclick="openAddStudentModal()" class="bg-medrese-accent hover:bg-emerald-800 text-white font-bold text-[11px] py-1.5 px-2 rounded-lg flex items-center gap-1 transition shadow-sm">
-                            <i class="fa-solid fa-plus"></i> Ekle
+                        <button onclick="openAddStudentModal()" class="bg-medrese-accent hover:bg-emerald-800 text-white font-bold text-[11px] py-1.5 px-3 rounded-lg flex items-center gap-1 transition shadow-sm w-full">
+                            <i class="fa-solid fa-plus"></i> Yeni Kayıt
                         </button>
                     </div>
                 </div>
@@ -341,7 +338,7 @@
                     <input type="number" id="studentFeeInput" onfocus="isUserTyping = true;" onblur="isUserTyping = false;" placeholder="Örn: 500" required min="0" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs text-slate-800 focus:outline-none focus:border-emerald-400">
                 </div>
                 <div>
-                    <label class="text-[10px] text-slate-500 font-bold block mb-1">Veli Telefon Numarası</label>
+                    <label class="text-[10px] text-slate-500 font-bold block mb-1">Veli Telefon Numarası (İsteğe Bağlı)</label>
                     <input type="text" id="studentPhoneInput" onfocus="isUserTyping = true;" onblur="isUserTyping = false;" placeholder="Örn: 5551234567" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs text-slate-800 focus:outline-none focus:border-emerald-400">
                 </div>
                 <button type="submit" id="studentSubmitBtn" class="w-full bg-medrese-emerald text-white font-bold text-xs py-3 rounded-xl hover:bg-emerald-700 transition shadow-md">Kaydet</button>
@@ -349,17 +346,16 @@
         </div>
     </div>
 
-    <!-- VELİ WP MODAL (Tekli Gönderim) -->
-    <div id="wpModal" class="modal fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[1000] flex items-center justify-center p-4 hidden">
-        <div class="modal-content bg-white max-w-md w-full p-5 rounded-3xl border border-slate-200 shadow-2xl max-h-[80vh] flex flex-col">
-            <div class="flex justify-between items-center pb-3 border-b border-slate-100 mb-4 flex-shrink-0">
-                <h3 class="font-serif text-sm font-bold text-medrese-accent flex items-center gap-1.5">
-                    <i class="fa-brands fa-whatsapp text-lg text-emerald-500"></i> Veli WP İletişim Masası
-                </h3>
-                <button onclick="closeWpModal()" class="text-slate-400 hover:text-rose-500 transition text-sm"><i class="fa-solid fa-xmark"></i></button>
+    <!-- 🟢 YENİ: WHATSAPP ONAY KUTUSU -->
+    <div id="askWpModal" class="modal fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[9999] flex items-center justify-center p-4 hidden">
+        <div class="modal-content bg-white max-w-sm w-full p-6 rounded-2xl text-center border-t-4 border-emerald-500 shadow-2xl">
+            <div class="text-emerald-500 text-4xl mb-3"><i class="fa-brands fa-whatsapp"></i></div>
+            <h3 class="font-serif text-base font-bold text-slate-800 mb-2">WhatsApp Bilgi Mesajı</h3>
+            <p id="askWpMessage" class="text-xs text-slate-500 mb-5">Aidat ödendi olarak işaretlendi. Veliye WhatsApp üzerinden otomatik bilgi mesajı gönderilsin mi?</p>
+            <div class="flex gap-3">
+                <button onclick="closeAskWpModal()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs py-3 rounded-xl transition">Hayır</button>
+                <button onclick="executeAskWp()" class="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs py-3 rounded-xl transition shadow-md">Evet, Gönder</button>
             </div>
-            <p class="text-[10px] text-slate-500 mb-3 flex-shrink-0">Talebelerin veli numaralarını kaydedip teşekkür mesajı gönderebilirsiniz.</p>
-            <div class="flex-grow overflow-y-auto space-y-2 pr-1 no-scrollbar" id="wpModalStudentList"></div>
         </div>
     </div>
 
@@ -412,6 +408,9 @@
         let editingStudentId = null;
         let editingTeacherPwdId = null;
         let expandedAdminLists = new Set(); 
+
+        let pendingWpStudent = null;
+        let pendingWpMonthIndex = null;
 
         function setSyncStatus(status) {
             const dot = document.getElementById('syncDot');
@@ -488,12 +487,10 @@
                 }
             } catch (err) {
                 setSyncStatus('error_net');
-                loadFromLocalStorage();
             }
         }
 
         async function verileriBulutaKaydet() {
-            localStorage.setItem('ilkikra_maas_backup', JSON.stringify(systemData));
             setSyncStatus('syncing');
             try {
                 await fetch(FIREBASE_URL + "maas_takip_pro.json", {
@@ -506,32 +503,21 @@
             }
         }
 
-        function loadFromLocalStorage() {
-            const localData = localStorage.getItem('ilkikra_maas_backup');
-            if (localData) {
-                try { systemData = JSON.parse(localData); } catch(e) {}
-            }
-            if (!isUserTyping) {
-                if (!isUnlocked) renderGateTeachers();
-                else refreshActivePanel();
-            }
-        }
-
         function checkSavedSession() {
-            const activeSession = localStorage.getItem('ilkikra_active_session');
+            const lastSession = localStorage.getItem('ilkikra_last_session');
             
-            if (activeSession === 'admin' && localStorage.getItem('ilkikra_admin') === 'true') {
+            if (lastSession === 'admin' && localStorage.getItem('ilkikra_admin_saved') === 'true') {
                 isUnlocked = true;
                 currentRole = 'admin';
                 showPanelScreen();
                 return;
             } 
-            else if (activeSession && systemData.hocalar && systemData.hocalar[activeSession]) {
-                const isTeacherSaved = localStorage.getItem('ilkikra_teacher_' + activeSession);
+            else if (lastSession && systemData.hocalar && systemData.hocalar[lastSession]) {
+                const isTeacherSaved = localStorage.getItem('ilkikra_teacher_saved_' + lastSession);
                 if (isTeacherSaved === 'true') {
                     isUnlocked = true;
                     currentRole = 'teacher';
-                    currentTeacherId = activeSession;
+                    currentTeacherId = lastSession;
                     showPanelScreen();
                     return;
                 }
@@ -581,21 +567,18 @@
                 return;
             }
 
-            // Hızlı Giriş (Bypass) Kontrolü: Bu hoca hesabı için önceden şifre kaydedilmiş mi?
-            const isTeacherSaved = localStorage.getItem('ilkikra_teacher_' + hId);
+            const isTeacherSaved = localStorage.getItem('ilkikra_teacher_saved_' + hId);
             
             if (isTeacherSaved === 'true') {
-                // Şifre kutusu boş olsa bile şak diye içeri al!
                 isUnlocked = true;
                 currentRole = 'teacher';
                 currentTeacherId = hId;
-                localStorage.setItem('ilkikra_active_session', hId);
+                localStorage.setItem('ilkikra_last_session', hId);
                 document.getElementById('gateErrorMsg').classList.add('hidden');
                 showPanelScreen();
                 return;
             }
 
-            // Eğer hızlı giriş yoksa şifre sor
             const rawInput = document.getElementById('gatePasswordInput').value;
             const pwdInput = String(rawInput).trim();
             const hoca = systemData.hocalar[hId];
@@ -612,11 +595,11 @@
                 isUnlocked = true;
                 currentRole = 'teacher';
                 currentTeacherId = hId;
-                localStorage.setItem('ilkikra_active_session', hId); 
+                localStorage.setItem('ilkikra_last_session', hId); 
                 
                 const rememberBox = document.getElementById('rememberMeCheck');
                 if (rememberBox && rememberBox.checked) {
-                    localStorage.setItem('ilkikra_teacher_' + hId, 'true'); // Sadece o hocayı kalıcı yap
+                    localStorage.setItem('ilkikra_teacher_saved_' + hId, 'true'); 
                 }
                 
                 document.getElementById('gateErrorMsg').classList.add('hidden');
@@ -629,17 +612,15 @@
         }
 
         function openAdminLoginModal() {
-            // YÖNETİCİ HIZLI GİRİŞİ: Yönetici daha önce kaydedilmişse şifre kutusunu hiç açma, panele atla.
-            const isAdminSaved = localStorage.getItem('ilkikra_admin');
+            const isAdminSaved = localStorage.getItem('ilkikra_admin_saved');
             if (isAdminSaved === 'true') {
                 isUnlocked = true;
                 currentRole = 'admin';
-                localStorage.setItem('ilkikra_active_session', 'admin');
+                localStorage.setItem('ilkikra_last_session', 'admin');
                 showPanelScreen();
                 return; 
             }
 
-            // Kayıt yoksa modalı aç ve sor
             document.getElementById('adminPasswordInput').value = '';
             document.getElementById('adminLoginErrorMsg').classList.add('hidden');
             document.getElementById('adminLoginModal').classList.remove('hidden');
@@ -663,8 +644,8 @@
             if (input === realPwd) {
                 isUnlocked = true;
                 currentRole = 'admin';
-                localStorage.setItem('ilkikra_admin', 'true'); // Yöneticiyi kalıcı kaydet
-                localStorage.setItem('ilkikra_active_session', 'admin');
+                localStorage.setItem('ilkikra_admin_saved', 'true'); 
+                localStorage.setItem('ilkikra_last_session', 'admin');
                 closeAdminLoginModal();
                 showPanelScreen();
             } else {
@@ -673,13 +654,12 @@
         }
 
         function logout() {
-            // Çıkış yap butonuna basıldığında aktif olan hesabın "Hızlı Giriş" yetkisini SİLER!
             if (currentRole === 'admin') {
-                localStorage.removeItem('ilkikra_admin');
+                localStorage.removeItem('ilkikra_admin_saved');
             } else if (currentRole === 'teacher' && currentTeacherId) {
-                localStorage.removeItem('ilkikra_teacher_' + currentTeacherId);
+                localStorage.removeItem('ilkikra_teacher_saved_' + currentTeacherId);
             }
-            localStorage.removeItem('ilkikra_active_session'); 
+            localStorage.removeItem('ilkikra_last_session'); 
 
             isUnlocked = false;
             currentRole = null;
@@ -700,11 +680,10 @@
             document.getElementById('mainPanel').classList.add('hidden');
             document.getElementById('gateScreen').classList.remove('hidden');
             
-            // Ana Ekrana dönüşte listeyi mutlaka yenile (Hoca eklenmişse düşsün)
             renderGateTeachers(); 
-            
+            isUnlocked = false;
             currentRole = null; 
-            localStorage.removeItem('ilkikra_active_session'); 
+            localStorage.removeItem('ilkikra_last_session');
         }
 
         function showPanelScreen() {
@@ -734,7 +713,7 @@
             const now = new Date();
             const timeStr = `${String(now.getDate()).padStart(2,'0')}/${String(now.getMonth()+1).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
             systemData.aktiviteler.unshift({ msg: message, time: timeStr, id: Date.now() });
-            if (systemData.aktiviteler.length > 50) systemData.aktiviteler.pop(); // Son 50 log tutulur
+            if (systemData.aktiviteler.length > 50) systemData.aktiviteler.pop(); 
         }
 
         function renderAdminPanel() {
@@ -836,7 +815,6 @@
             document.getElementById('adminTotalExpected').innerText = adminFilterMonth === 7 ? "0 ₺" : formatCurrency(globalExpected);
             document.getElementById('adminTotalPaid').innerText = adminFilterMonth === 7 ? "0 ₺" : formatCurrency(globalPaid);
 
-            // 🟢 LOG EKRANINI DOLDURMA
             const actList = document.getElementById('adminActivityList');
             if(actList) {
                 actList.innerHTML = '';
@@ -1097,33 +1075,64 @@
             });
         }
 
-        // 🟢 İŞTE SENİN HATAYI VE ÇAKIŞMAYI ÇÖZEN YEPYENİ "TRAFİK POLİSLİ" GERİ ALMA FONKSİYONU
         async function togglePayment(cellKey) {
             const st = getTeacherStudents()[selectedStudentId];
             if (!st) return;
             if (!st.odemeler) st.odemeler = {};
             
-            // Eğer zaten ödenmişse, kaydı tamamen sil (Geri al)
+            let isNowPaid = false;
+
             if (st.odemeler[cellKey] === true) {
                 delete st.odemeler[cellKey];
             } else {
-                // Ödenmemişse, ödendi olarak işaretle
                 st.odemeler[cellKey] = true;
+                isNowPaid = true;
             }
             
-            // Sistem buluta veri yollarken otomatik yenilemenin araya girip eskiyi çekmesini engelliyoruz (Trafik durdurulur)
             isUserTyping = true; 
-            
-            // Ekranı anında güncelle (kullanıcı beklemeyecek)
             refreshUI(); 
-            
-            // Verinin buluta kesin olarak yazıldığından emin ol
             await verileriBulutaKaydet(); 
             
-            // Buluta kayıt bittikten 1 saniye sonra trafiği (otomatik yenilemeyi) tekrar aç
             setTimeout(() => {
                 isUserTyping = false;
             }, 1000);
+
+            if (isNowPaid) {
+                const [yStr, mStr] = cellKey.split('-');
+                const monthIndex = parseInt(mStr);
+                let cleanPhone = (st.veli_tel || "").replace(/\s+/g, '').replace(/[^0-9]/g, '');
+                
+                if(cleanPhone.length > 9) {
+                    askWpMessage(st, monthIndex);
+                }
+            }
+        }
+
+        function askWpMessage(student, monthIndex) {
+            pendingWpStudent = student;
+            pendingWpMonthIndex = monthIndex;
+            document.getElementById('askWpMessage').innerHTML = `<b>${student.ad}</b> isimli talebenin <b>${MONTHS[monthIndex]}</b> ayı aidatı ödendi olarak işaretlendi.<br><br>Veliye WhatsApp üzerinden otomatik bilgi mesajı gönderilsin mi?`;
+            document.getElementById('askWpModal').classList.remove('hidden');
+        }
+
+        function closeAskWpModal() {
+            document.getElementById('askWpModal').classList.add('hidden');
+            pendingWpStudent = null;
+            pendingWpMonthIndex = null;
+        }
+
+        function executeAskWp() {
+            if (!pendingWpStudent) return;
+            
+            let cleanPhone = (pendingWpStudent.veli_tel || "").replace(/\s+/g, '').replace(/[^0-9]/g, '');
+            if (cleanPhone.length === 10 && cleanPhone.startsWith('5')) cleanPhone = '90' + cleanPhone;
+            else if (cleanPhone.startsWith('05')) cleanPhone = '90' + cleanPhone.substring(1);
+            else if (cleanPhone.length === 11 && cleanPhone.startsWith('0')) cleanPhone = '90' + cleanPhone.substring(1);
+
+            const msg = `Selamun Aleykum. İlkikra Medresesi: ${pendingWpStudent.ad} isimli talebemizin ${MONTHS[pendingWpMonthIndex]} ayı aidatı ödenmiştir. Allah razı olsun, teşekkür ederiz.`;
+            
+            window.open(`https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(msg)}`, '_blank');
+            closeAskWpModal();
         }
 
         function openAddStudentModal() {
@@ -1186,47 +1195,6 @@
             };
             document.getElementById('confirmMessage').innerText = `"${st.ad}" isimli talebeyi silmek istediğinize emin misiniz?`;
             document.getElementById('confirmModal').classList.remove('hidden');
-        }
-
-        function openWpModal() {
-            const students = getTeacherStudents();
-            const keys = Object.keys(students).filter(k => students[k] && students[k].ad);
-            const listEl = document.getElementById('wpModalStudentList');
-            listEl.innerHTML = '';
-            if (keys.length === 0) {
-                listEl.innerHTML = `<div class="text-center py-6 text-slate-500 text-xs font-medium">Sınıfınızda kayıtlı öğrenci yok.</div>`;
-            } else {
-                keys.forEach(stId => {
-                    const student = students[stId];
-                    const row = document.createElement('div');
-                    row.className = "flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-200 gap-2";
-                    row.innerHTML = `
-                        <div class="flex-grow min-w-0 text-left">
-                            <p class="font-bold text-xs text-slate-800 truncate">${student.ad}</p>
-                            <p class="text-[9px] text-slate-500 mt-0.5">Aidat: <span class="text-emerald-600 font-bold">${formatCurrency(student.ucret || 0)}</span></p>
-                        </div>
-                        <div class="flex items-center gap-1.5 flex-shrink-0" onclick="event.stopPropagation();">
-                            <input type="text" placeholder="Telefon No" value="${student.veli_tel || ''}" 
-                                   onfocus="isUserTyping = true;" onblur="isUserTyping = false; saveWpPhone('${stId}', this.value)" 
-                                   class="bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-[11px] text-slate-800 focus:outline-none focus:border-emerald-400 w-[140px] text-center transition">
-                            <button onclick="sendWpMessage('${stId}')" class="bg-emerald-500 hover:bg-emerald-600 text-white p-2 rounded-lg flex items-center justify-center transition shadow-sm"><i class="fa-brands fa-whatsapp text-sm"></i></button>
-                        </div>
-                    `;
-                    listEl.appendChild(row);
-                });
-            }
-            document.getElementById('wpModal').classList.remove('hidden');
-        }
-        function closeWpModal() { document.getElementById('wpModal').classList.add('hidden'); refreshUI(); }
-        function saveWpPhone(stId, val) { if (systemData.hocalar[currentTeacherId].ogrenciler[stId]) { systemData.hocalar[currentTeacherId].ogrenciler[stId].veli_tel = val.trim(); verileriBulutaKaydet(); } }
-        
-        function sendWpMessage(stId) {
-            const student = getTeacherStudents()[stId];
-            if (!student) return;
-            let cleanPhone = (student.veli_tel || "").replace(/\s+/g, '').replace(/[^0-9]/g, '');
-            if (!cleanPhone) { showInfoModal("<i class='fa-solid fa-triangle-exclamation text-amber-500'></i>", "Numara Eksik!", "Veli numarası yok."); return; }
-            if (cleanPhone.length === 10 && cleanPhone.startsWith('5')) cleanPhone = '90' + cleanPhone;
-            window.open(`https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(`İlkikra Medresesi: ${student.ad} isimli talebemizin ${MONTHS[selectedFilterMonth]} ayı aidatı ödenmiştir. Teşekkür ederiz.`)}`, '_blank');
         }
 
         function showInfoModal(iconHtml, title, msg) { document.getElementById('infoModalIcon').innerHTML = iconHtml; document.getElementById('infoModalTitle').innerText = title; document.getElementById('infoModalMsg').innerText = msg; document.getElementById('infoModal').classList.remove('hidden'); }
