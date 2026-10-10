@@ -1102,8 +1102,16 @@
                 const monthIndex = parseInt(mStr);
                 let cleanPhone = (st.veli_tel || "").replace(/\s+/g, '').replace(/[^0-9]/g, '');
                 
+                // Telefon numarası en az 10 haneli mi kontrol et (Örn: 5551234567)
                 if(cleanPhone.length > 9) {
                     askWpMessage(st, monthIndex);
+                } else {
+                    // Eğer numara eksik veya kısaysa yöneticiyi/hocayı uyar
+                    showInfoModal(
+                        "<i class='fa-solid fa-phone-slash text-amber-500'></i>",
+                        "Veli Numarası Eksik!",
+                        "Bu talebeye ait geçerli bir telefon numarası kayıtlı olmadığı için WhatsApp ekranı açılamadı.<br><br>Lütfen sol taraftaki listeden <b>Kalem (Düzenle)</b> ikonuna tıklayıp veli numarasını ekleyin."
+                    );
                 }
             }
         }
@@ -1201,6 +1209,10 @@
         function closeInfoModal() { document.getElementById('infoModal').classList.add('hidden'); }
         function closeConfirmModal() { document.getElementById('confirmModal').classList.add('hidden'); confirmActionCallback = null; }
         function executeConfirmedDelete() { if (confirmActionCallback) confirmActionCallback(); }
+        
+        function showInfoModal(iconHtml, title, msg) { document.getElementById('infoModalIcon').innerHTML = iconHtml; document.getElementById('infoModalTitle').innerText = title; document.getElementById('infoModalMsg').innerHTML = msg; document.getElementById('infoModal').classList.remove('hidden'); }
+        function closeInfoModal() { document.getElementById('infoModal').classList.add('hidden'); }
+        function closeConfirmModal() { document.getElementById('confirmModal').classList.add('hidden'); confirmActionCallback = null; }
         
         function formatCurrency(val) { return new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(parseFloat(val) || 0); }
     </script>
